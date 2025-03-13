@@ -1,11 +1,9 @@
-export time_array, calculateF
+export time_array, collect_rij
+
 """
-F in this case is the quantity (3cos(θ)^2 - 1) / r^3
-The output of this function is a matrix which contains this quantity 
-for all pairs of hydrogens (columns)
-and each time step (rows).
+Collect all possible distances between all pairs (rows), for all timesteps (columns)
 """
-function calculateF(dumpfilepath, contributions::String)
+function collect_rij(dumpfilepath, contributions::String)
 
     num_lines::Int = countlines(dumpfilepath)
 
@@ -39,9 +37,7 @@ function calculateF(dumpfilepath, contributions::String)
     boxlengths::MVector{3, Float32} = @SVector zeros(Float32, 3)
     positions::Vector{SVector{3, Float32}} = [@SVector zeros(Float32, 3) for _ in 1:nhydrogens]
     Hpairs::Vector{SVector{3, Float32}} = [@SVector zeros(Float32, 3) for _ in 1:npairs]
-    F::Matrix{Float32} = zeros(Float32, npairs, totalsteps)
-    zvec::SVector{3, Float32} = SA_F32[0.0, 0.0, 1.0]
-    vecnorm::Float32 = 1.0
+    P::Matrix{SVector{3, Float32}} = fill(SA_F32[0,0,0], npairs, totalsteps)
 
     # Open the dump file
     open(dumpfilepath) do io
@@ -83,11 +79,7 @@ function calculateF(dumpfilepath, contributions::String)
             getpairs!(Hpairs, positions, contributions)
             periodicboundary!(Hpairs, boxlengths)
 
-            for (i, p) in enumerate(Hpairs)
-                vecnorm = norm(p)
-                F[i, s] = ( 3 * ( dot(zvec, p)/vecnorm)^2 -1 ) / vecnorm ^3
-            end
-
+            P[:, s] = Hpairs
 
             # Go to next timestep
         end
@@ -95,7 +87,7 @@ function calculateF(dumpfilepath, contributions::String)
         # Close the IO file
     end
 
-    return F
+    return P
 
     # Exit the function
 end
