@@ -16,7 +16,8 @@ function collect_rij(dumpfilepath, contributions::String)
 
     totalsteps::Int = num_lines ÷ (natoms + 9) 
 
-    exclude_atoms = natoms ÷ 2
+    #=exclude_atoms = natoms ÷ 2=#
+    exclude_atoms = 0
     natoms -= exclude_atoms
     nhydrogens::Int = 2 * natoms ÷ 3
 
@@ -37,7 +38,7 @@ function collect_rij(dumpfilepath, contributions::String)
     boxlengths::MVector{3, Float32} = @SVector zeros(Float32, 3)
     positions::Vector{SVector{3, Float32}} = [@SVector zeros(Float32, 3) for _ in 1:nhydrogens]
     Hpairs::Vector{SVector{3, Float32}} = [@SVector zeros(Float32, 3) for _ in 1:npairs]
-    P::Matrix{SVector{3, Float32}} = fill(SA_F32[0,0,0], npairs, totalsteps)
+    P::Matrix{SVector{3, Float32}} = fill(SA_F32[0,0,0], totalsteps, npairs)
 
     # Open the dump file
     open(dumpfilepath) do io
@@ -79,7 +80,7 @@ function collect_rij(dumpfilepath, contributions::String)
             getpairs!(Hpairs, positions, contributions)
             periodicboundary!(Hpairs, boxlengths)
 
-            P[:, s] = Hpairs
+            P[s, :] = Hpairs
 
             # Go to next timestep
         end
